@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PPA 創作者後台 · 課程健康度｜潔牙的科學</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="creator.css">
+</head>
+<body class="cbody">
+
+<header class="cnav">
+  <a class="brand" href="#">
+    <span class="brand-mark">▶</span>
+    <span class="brand-text"><b>PressPlay</b><em>ACADEMY</em></span>
+  </a>
+  <span class="cnav-tag">創作者後台</span>
+  <span class="spacer"></span>
+  <a class="cnav-back" href="index.html">← 回到學員視角</a>
+  <div class="avatar">志</div>
+</header>
+
+<main class="cpage">
+
+  <!-- ── 標題 ── -->
+  <section class="chead">
+    <div class="chead-l">
+      <div class="chead-crumb">口腔健康自救手冊 · 單元 1.4</div>
+      <h1>潔牙的科學：為什麼你天天刷牙，還是有牙周病</h1>
+      <p class="chead-sub">
+        這份報告不是「有多少人看」。它是<b>486 位學員把哪幾秒倒回去重看</b>，
+        以及<b>他們在那裡答錯了什麼</b> —— 這兩件事加起來，就是你這堂課沒講清楚的地方。
+      </p>
+    </div>
+    <div class="chead-r">
+      <div class="cscore" id="cscore">
+        <div class="cscore-ring"><b>72</b></div>
+        <span>課程健康度</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 總覽 ── -->
+  <section class="cstats" id="cstats"></section>
+
+  <!-- ── 共同誤解（最值錢的一格）── -->
+  <section class="cbox cbox-red">
+    <header class="cbox-h">
+      <h2>🚨 共同誤解 — 學員普遍答錯的地方</h2>
+      <p>投票的分布會暴露一件重播數說不出口的事：<b>他們不只是沒聽懂，而是「聽成了別的意思」。</b>
+         下面每一條，都是<b>最多人選、而且是錯的</b>那個選項。</p>
+    </header>
+    <ul class="misc" id="misc"></ul>
+  </section>
+
+  <!-- ── 重播熱力圖 ── -->
+  <section class="cbox">
+    <header class="cbox-h">
+      <h2>重播熱力圖 — 全班在哪幾秒倒回去</h2>
+      <p>基線中位數只有 <b id="mBase">19</b> 人，最高峰 <b id="mPeak">323</b> 人 —— 訊噪比 <b id="mSnr">17×</b>。
+         這是「重播」比「暫停」乾淨的地方：沒有人會無聊亂倒帶。</p>
+    </header>
+    <div class="cheat-wrap">
+      <div class="cheat" id="cheat"></div>
+      <div class="cheat-axis" id="cheatAxis"></div>
+    </div>
+    <div class="cheat-legend">
+      <span><i class="lg-hot"></i> 重播熱點</span>
+      <span><i class="lg-skip"></i> 業配段（跳過率 <b>87%</b>）</span>
+      <span class="spacer"></span>
+      <span class="cheat-note">滑過柱子看細節</span>
+    </div>
+  </section>
+
+  <!-- ── 業配段警示 ── -->
+  <section class="cbox cbox-warn" id="sponsorBox"></section>
+
+  <!-- ── 逐點診斷 ── -->
+  <section class="cbox">
+    <header class="cbox-h">
+      <h2>逐點診斷 — 7 個重播熱點，AI 給的改法</h2>
+      <p>依<b>受影響人數</b>排序 —— 最多人卡在哪，就排最前面。
+         成本與影響只是標籤，先做哪一個由你決定；標了 <b>🎯 CP 值最高</b> 的，是低成本、中高影響的那幾個。</p>
+    </header>
+    <div class="diag" id="diag"></div>
+  </section>
+
+  <!-- ── 已生成素材 ── -->
+  <section class="cbox cbox-ai">
+    <header class="cbox-h">
+      <h2>✦ AI 已經先幫你做好的</h2>
+      <p>在你決定要不要重拍之前，這些東西已經在跑了 —— 它們正在補這堂課的洞。</p>
+    </header>
+    <div class="assets" id="assets"></div>
+  </section>
+
+  <footer class="cfoot">
+    原型資料：重播直方圖與投票分布為模擬（固定種子，可重現）；影片、逐字稿、章節、精華起訖點為真實。
+    要換成真的，缺的不是模型，是埋點 —— 目前行為表沒有 <code>video_replay</code> 事件，也沒有秒數。
+  </footer>
+</main>
+
+<script src="creator.js"></script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PressPlay Academy — 找出你的學習人格</title>
+<style>
+  :root{
+    --bg:#0a0a0c; --surface:#141418; --surface-2:#1c1c22; --line:#26262e;
+    --txt:#f2f2f5; --txt-2:#b8b8c2; --txt-3:#7c7c88;
+    --orange:#ff6b1a; --purple:#8b5cf6; --blue:#5b8dff; --ink:#1b1b4b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--txt);
+    font-family:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1320px;margin:0 auto;padding:0 24px}
+
+  /* ── 導覽列 ── */
+  .nav{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:26px;
+    height:64px;padding:0 24px;background:rgba(10,10,12,.92);backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;flex:none}
+  .brand img{height:30px;width:auto;display:block}
+  .nav-links{display:flex;align-items:center;gap:22px;flex:none}
+  .nav-links a{color:var(--txt);font-size:14.5px;font-weight:500;position:relative;white-space:nowrap}
+  .nav-links a:hover{color:var(--orange)}
+  .caret{font-size:10px;color:var(--txt-3)}
+  .has-dot::after{content:"";position:absolute;top:-2px;right:-7px;width:6px;height:6px;
+    border-radius:50%;background:#ff3b3b}
+  .search{flex:1;max-width:330px;display:flex;align-items:center;gap:9px;height:40px;
+    padding:0 15px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px}
+  .search svg{width:16px;height:16px;color:var(--txt-3);flex:none}
+  .search input{flex:1;background:none;border:0;outline:0;color:var(--txt);font-size:14px}
+  .search input::placeholder{color:var(--txt-3)}
+  .nav-right{display:flex;align-items:center;gap:16px;margin-left:auto;flex:none}
+  .nav-plain{font-size:14.5px;font-weight:500;white-space:nowrap}
+  .nav-plain:hover{color:var(--orange)}
+  .icon-btn{position:relative;width:22px;height:22px;color:var(--txt);background:none;border:0;cursor:pointer}
+  .icon-btn svg{width:22px;height:22px}
+  .badge{position:absolute;top:-6px;right:-6px;min-width:15px;height:15px;padding:0 4px;
+    background:#ff3b3b;color:#fff;font-size:10px;font-style:normal;border-radius:999px;
+    display:grid;place-items:center;line-height:1}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#ff9a5b);
+    display:grid;place-items:center;font-size:13px;font-weight:700;color:#1a0f00}
+
+  /* ── Plus / 買課 tab ── */
+  .tabs{display:flex;gap:14px;margin:22px 0 18px}
+  .tabs button{flex:1;height:52px;border-radius:14px;border:1px solid var(--line);
+    background:var(--surface);color:var(--txt-2);font-size:16px;font-weight:700;cursor:default}
+  .tabs button.on{background:linear-gradient(135deg,#7c5cff,#8b5cf6);color:#fff;border-color:transparent;
+    box-shadow:0 8px 24px rgba(139,92,246,.35)}
+
+  /* ── AI 助教列 ── */
+  .aibar{display:flex;align-items:center;gap:10px;height:52px;padding:0 18px;margin-bottom:22px;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;color:var(--txt-3);font-size:15px}
+  .aibar .spark{color:var(--purple)}
+  .aibar .send{margin-left:auto;width:34px;height:34px;border-radius:50%;background:var(--surface-2);
+    display:grid;place-items:center;color:var(--txt-2)}
+
+  /* ── HERO（米白 banner）── */
+  .hero{position:relative;border-radius:22px;overflow:hidden;
+    background:#f7f1e6 url('1st_page_banner.png') right center/cover no-repeat;
+    min-height:340px;display:flex;align-items:center}
+  .hero-in{padding:48px 56px;max-width:60%}
+  .hero h1{font-size:46px;line-height:1.15;color:var(--ink);font-weight:900;letter-spacing:.01em}
+  .hero p{margin-top:16px;font-size:18px;line-height:1.7;color:#5b5540;max-width:30ch}
+  .cta{display:inline-flex;align-items:center;gap:10px;margin-top:28px;padding:16px 34px;
+    background:linear-gradient(135deg,#ff6b1a,#ff8a3d);color:#fff;font-size:19px;font-weight:800;
+    border-radius:999px;box-shadow:0 10px 30px rgba(255,107,26,.45);
+    animation:pulse 2s ease-in-out infinite;position:relative}
+  .cta:hover{transform:translateY(-2px)}
+  .cta .arrow{transition:transform .2s}
+  .cta:hover .arrow{transform:translateX(4px)}
+  @keyframes pulse{0%,100%{box-shadow:0 10px 30px rgba(255,107,26,.45)}
+    50%{box-shadow:0 10px 40px rgba(255,107,26,.75),0 0 0 6px rgba(255,107,26,.15)}}
+
+  /* 指引氣泡 */
+  .guide{position:absolute;left:56px;bottom:22px;display:flex;align-items:center;gap:8px;
+    padding:9px 16px;background:var(--ink);color:#fff;font-size:14px;font-weight:700;border-radius:999px;
+    box-shadow:0 8px 20px rgba(0,0,0,.25);animation:bob 1.6s ease-in-out infinite}
+  .guide .up{font-size:16px}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+  /* ── 兩個指引窗口 ── */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}
+  .jcard{position:relative;display:flex;align-items:center;gap:14px;padding:22px 26px;border-radius:16px;
+    background:linear-gradient(100deg,#fff7e6,#fef3f0);color:#3a2f1a;overflow:hidden}
+  .jcard .em{font-size:30px;flex:none}
+  .jcard .tx b{display:block;font-size:17px;font-weight:800;color:#7c4a12}
+  .jcard .tx span{font-size:13.5px;color:#8a6a3a}
+  .jcard .up2{margin-left:auto;font-size:22px;color:#c77b2a;animation:bob 1.6s ease-in-out infinite}
+
+  /* ── 下方活動區 ── */
+  .promo-h{margin:34px 0 14px;font-size:17px;font-weight:800;color:var(--txt)}
+  .promo{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:60px}
+  .pbig{position:relative;min-height:200px;border-radius:18px;padding:34px 38px;overflow:hidden;
+    background:radial-gradient(120% 140% at 20% 10%,#3a1d6e 0%,#160a2e 60%,#0a0518 100%)}
+  .pbig .tag{display:inline-block;padding:4px 12px;border:1px solid rgba(139,92,246,.6);border-radius:999px;
+    color:#c4b5fd;font-size:12px;font-weight:700}
+  .pbig h3{margin-top:14px;font-size:30px;font-weight:900;color:#fff;line-height:1.25}
+  .pbig h3 em{font-style:normal;color:#ffd54a}
+  .pbig .cta2{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:11px 22px;
+    background:linear-gradient(135deg,#7c5cff,#8b5cf6);color:#fff;font-weight:800;border-radius:999px;font-size:14px}
+  .psmall{border-radius:18px;padding:26px;background:linear-gradient(160deg,#1f2a44,#131a2c);
+    display:flex;flex-direction:column;justify-content:center;gap:8px}
+  .psmall .k{font-size:13px;color:var(--blue);font-weight:700}
+  .psmall .v{font-size:26px;font-weight:900;color:#fff}
+  .psmall .s{font-size:13px;color:var(--txt-3)}
+
+  @media(max-width:820px){
+    .search,.nav-links{display:none}
+    .hero-in{max-width:100%;padding:32px 26px;background:rgba(247,241,230,.72);backdrop-filter:blur(2px)}
+    .hero h1{font-size:32px}.hero p{font-size:16px}
+    .cards,.promo{grid-template-columns:1fr}
+    .guide{left:26px}
+  }
+</style>
+</head>
+<body>
+
+<!-- 導覽列 -->
+<header class="nav">
+  <a class="brand" href="#"><img src="ppc_academy.jpg" alt="PressPlay Academy" /></a>
+  <nav class="nav-links">
+    <a href="#">探索 <span class="caret">▾</span></a>
+    <a href="#" class="has-dot">每日簽到</a>
+    <a href="#">領券專區</a>
+  </nav>
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input placeholder="搜尋課程、講師、關鍵字" />
+  </div>
+  <div class="nav-right">
+    <a href="#" class="nav-plain">下載 App</a>
+    <a href="#" class="nav-plain">我的學習</a>
+    <button class="icon-btn" title="購物車"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12h11L21 7H6"/></svg></button>
+    <button class="icon-btn" title="通知"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-2 8-2 8h16s-2-1-2-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><i class="badge">1</i></button>
+    <div class="avatar">志</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Plus / 買課 -->
+  <div class="tabs">
+    <button class="on">✦ Plus 專屬</button>
+    <button>PPA 買課</button>
+  </div>
+
+  <!-- AI 助教列 -->
+  <div class="aibar">
+    <span class="spark">✦</span> 學習問 AI 助教
+    <span class="send">↑</span>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-in">
+      <h1>找出你的學習人格</h1>
+      <p>只要 6 個小問題，就能找出最適合你的學習節奏。</p>
+      <a class="cta" href="front/">開始測驗 <span class="arrow">→</span></a>
+    </div>
+    <div class="guide"><span class="up">👆</span> 評審您好，請從這裡開始</div>
+  </section>
+
+  <!-- 兩個指引窗口 -->
+  <div class="cards">
+    <div class="jcard">
+      <span class="em">👋</span>
+      <div class="tx"><b>評審好，請點擊上面的「開始測驗」</b><span>從課前人格測驗開始，走完整條學習動線</span></div>
+      <span class="up2">↑</span>
+    </div>
+    <div class="jcard">
+      <span class="em">🧭</span>
+      <div class="tx"><b>評審好，請點擊上面的「開始測驗」</b><span>測驗 → 影片學習 → 學習城市，一次體驗到底</span></div>
+      <span class="up2">↑</span>
+    </div>
+  </div>
+
+  <!-- 下方活動區 -->
+  <div class="promo-h">熱門活動</div>
+  <div class="promo">
+    <div class="pbig">
+      <span class="tag">✦ PPA plus 全面啟動</span>
+      <h3>開通即送 <em>50 點</em> 戰力值<br/>聽課再抽蘋果大獎</h3>
+      <span class="cta2">看活動詳情 →</span>
+    </div>
+    <div class="psmall">
+      <span class="k">個人挑戰賽 🚀</span>
+      <span class="v">連勝越多，獎勵越高</span>
+      <span class="s">第一戰 7.1 – 7.31</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

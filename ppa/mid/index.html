@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PPA · 潔牙的科學｜AI 助教原型</title>
+<!-- 主題無閃爍：paint 前就把 data-theme 定好。
+     三個 app（front/mid/end）共用 key「ppa-theme」，載入優先序 ?theme= > localStorage > 預設 dark。 -->
+<script>(function(){try{
+  document.documentElement.setAttribute("data-theme","light");
+  localStorage.setItem("ppa-theme","light");
+}catch(e){document.documentElement.setAttribute("data-theme","light");}})();</script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════ 頂部導覽 ══════════════════════════════ -->
+<header class="nav">
+  <a class="brand" href="#">
+    <span class="brand-mark">▶</span>
+    <span class="brand-text"><b>PressPlay</b><em>ACADEMY</em></span>
+  </a>
+  <nav class="nav-links">
+    <a href="#">探索 <span class="caret">▾</span></a>
+    <a href="#" class="has-dot">每日簽到</a>
+    <a href="#">領券專區</a>
+    <!-- 動線入口：直接去 end 學習城市看進度（帶主題）-->
+    <a href="#" id="toCityNav" class="nav-city" title="前往學習城市看你的學習進度">🏙️ 學習城市</a>
+  </nav>
+  <div class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input placeholder="搜尋課程、講師、關鍵字">
+  </div>
+  <div class="nav-right">
+    <a href="#" class="nav-plain">下載 App</a>
+    <!-- 「我的學習」→ 學習城市（end）。動線的下一站：學完，回城市看它長大 -->
+    <a href="#" class="nav-plain" id="toCityLink" title="前往學習城市">我的學習</a>
+    <button class="icon-btn" title="購物車">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12h11L21 7H6"/></svg>
+    </button>
+    <button class="icon-btn" title="訊息">
+      <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z"/></svg>
+      <i class="badge">1</i>
+    </button>
+    <button class="icon-btn" id="bellBtn" title="通知">
+      <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-2 8-2 8h16s-2-1-2-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <i class="dot" id="bellDot" hidden></i>
+    </button>
+    <div class="avatar">志</div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════ 主體 ══════════════════════════════ -->
+<main class="page">
+
+  <!-- ───────── 左：播放器 ───────── -->
+  <section class="main-col">
+
+    <div class="player" id="player">
+      <video id="video" src="assets/video.mp4" poster="assets/cover.jpg" preload="metadata" playsinline></video>
+
+      <!-- 緩衝轉圈 -->
+      <div class="vspin" id="vspin" hidden></div>
+
+      <div class="player-tools">
+        <button class="ptool" title="投放到電視">TV</button>
+        <button class="ptool" title="只聽聲音">音</button>
+        <button class="ptool" title="子母畫面">PiP</button>
+      </div>
+
+      <button class="big-play" id="bigPlay" aria-label="播放">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+
+      <!-- 字幕裡的專有名詞會被標成可點的（見 app.js 的 markGloss） -->
+      <div class="subtitle" id="subtitle"></div>
+
+      <!-- ══ 名詞小窗 ══
+           點字幕裡的專有名詞就地展開，不跳去筆記面板。
+           你只是想知道「牙齦溝是什麼」，不該為此離開影片。 -->
+      <div class="gpop" id="gpop" hidden>
+        <div class="gpop-head">
+          <b id="gpTerm"></b>
+          <span class="gpop-first" id="gpFirst"></span>
+          <button class="gpop-x" id="gpX" aria-label="關閉">✕</button>
+        </div>
+        <p class="gpop-def" id="gpDef"></p>
+        <button class="gpop-jump" id="gpJump">↺ 回到它第一次出現的地方</button>
+      </div>
+
+      <!-- ══ AI 助教介入卡 ══
+           兩段式：先來一張 mini（只講「幾個人在這裡倒帶」），10 秒沒理就自己淡掉 ——
+           你正在看影片，我不該一上來就糊你一整面。
+           按了「顯示更多」才長成完整卡：解說直接攤開 + 一題即時投票。 -->
+      <aside class="coach mini" id="coach" hidden>
+        <div class="coach-stat">
+          <div class="coach-ring" id="coachRing"><b id="coachPct">66%</b></div>
+          <div class="coach-stat-txt">
+            <strong id="coachCount">323 位同學</strong>
+            <span id="coachSub">把這段倒回去重看，平均 2.6 次</span>
+          </div>
+          <button class="coach-x" id="coachX" aria-label="關閉">✕</button>
+        </div>
+
+        <!-- mini 狀態：只有這顆按鈕 -->
+        <button class="coach-more" id="coachMore">
+          <span>顯示更多</span>
+          <i class="coach-more-hint">AI 解說 · 全班怎麼答</i>
+          <b>▾</b>
+          <em class="coach-fuse" id="coachFuse"></em>
+        </button>
+
+        <!-- full 狀態：展開後的內容 -->
+        <div class="coach-full">
+          <div class="coach-answer" id="coachAnswer"></div>
+          <div class="coach-sticky" id="coachSticky"></div>
+
+          <div class="poll" id="poll">
+            <div class="poll-lead">🗳 順手測一下 — 全班都卡在這題</div>
+            <div class="poll-q" id="pollQ"></div>
+            <div class="poll-opts" id="pollOpts"></div>
+          </div>
+
+          <div class="poll-res" id="pollRes" hidden></div>
+
+          <div class="coach-acts">
+            <button class="btn btn-ghost" id="coachClip">剪成精華 ✂</button>
+            <button class="btn btn-ai" id="coachAsk">問 AI 助教</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ── 控制列 ── -->
+      <div class="controls" id="controls">
+        <div class="track-wrap">
+          <div class="heat" id="heat" aria-hidden="true"></div>
+          <div class="marks" id="marks"></div>
+          <div class="track" id="track">
+            <div class="track-buffer"></div>
+            <div class="track-fill" id="trackFill"></div>
+            <div class="track-knob" id="trackKnob"></div>
+          </div>
+          <div class="scrub-tip" id="scrubTip" hidden></div>
+        </div>
+
+        <div class="ctl-row">
+          <!-- 兩個圖示疊著，用 .is-playing 交叉淡入淡出 —— 不用 hidden 互切，卡不住 -->
+          <button class="cbtn" id="playBtn" aria-label="播放/暫停">
+            <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+          </button>
+          <!-- 這顆是整個原型的訊號來源：按一下 = 一次重播 -->
+          <button class="cbtn cbtn-replay" id="replayBtn" title="倒回 10 秒重看">
+            <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            <b>10</b>
+          </button>
+          <button class="cbtn" id="muteBtn" aria-label="靜音">
+            <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
+          </button>
+          <span class="ctl-chapter" id="ctlChapter">台灣每 10 個成年人，8 個有牙周病</span>
+          <span class="spacer"></span>
+          <span class="ctl-time"><b id="tCur">0:00</b> / <span id="tDur">9:25</span></span>
+          <button class="cbtn" id="ccBtn" aria-label="字幕"><b class="cc-a">A</b></button>
+          <button class="cbtn" aria-label="設定">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+          </button>
+          <button class="cbtn" id="fsBtn" aria-label="全螢幕">
+            <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 熱力圖圖例 -->
+    <div class="legend">
+      <span class="legend-title">重播熱力圖</span>
+      <span class="legend-sub">全班 <b id="lgN">486</b> 位學員「倒回去重看」的地方 · 每 5 秒一格</span>
+      <span class="legend-scale"><i></i><i></i><i></i><i></i><i></i> 重播人數</span>
+      <span class="legend-key"><b class="k-hot"></b> AI 助教介入點</span>
+      <span class="legend-key"><b class="k-skip"></b> 高跳過區</span>
+    </div>
+
+    <!-- ───────── 影片下方資訊 ───────── -->
+    <div class="meta">
+      <h1 id="mTitle">1.4 潔牙的科學：為什麼你天天刷牙，還是有牙周病</h1>
+      <h2 id="mSeries">口腔健康自救手冊</h2>
+      <div class="meta-row">
+        <span class="m-item">🔒 <span id="mPlan">限定方案</span></span>
+        <span class="m-item">🕐 <span id="mDate">2025/12/17 17:00</span></span>
+        <span class="m-item">👁 <span id="mViews">4,959</span></span>
+      </div>
+
+      <div class="acts">
+        <button class="act" id="clapBtn">👏 <b id="clapN">99+</b></button>
+        <button class="act">💬 <b>13</b></button>
+        <button class="act">📎 <b>1</b></button>
+        <button class="act">🔖 收藏</button>
+        <span class="spacer"></span>
+        <button class="act">↗ 分享</button>
+        <button class="act">Aa 字級</button>
+        <!-- 主題固定亮色，已移除切換鈕 -->
+      </div>
+
+      <div class="ai-bar">
+        <button class="btn btn-ai btn-lg" id="notesBtn">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M4 4h13l3 3v13H4z"/><path d="M8 10h8M8 14h5"/></svg>
+          AI 助教整理筆記
+        </button>
+        <button class="btn btn-reels btn-lg" id="reelsBtn">
+          <svg viewBox="0 0 24 24" class="ico"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M10 8.5v7l5.5-3.5z"/></svg>
+          看精華 Reels
+          <i class="pill" id="reelsN">7</i>
+        </button>
+        <span class="spacer"></span>
+        <span class="ai-note" id="aiNote">你上次看到 <b>08:51</b>，還剩 34 秒</span>
+      </div>
+    </div>
+
+    <!-- ───────── AI 筆記面板 ───────── -->
+    <section class="notes" id="notes" hidden>
+      <header class="notes-head">
+        <div class="notes-title">
+          <span class="ai-badge">✦ AI 助教</span>
+          <h3 id="notesH">正在讀你的 9 分 25 秒逐字稿…</h3>
+        </div>
+        <button class="notes-x" id="notesX">收合</button>
+      </header>
+      <div class="notes-body" id="notesBody"></div>
+    </section>
+  </section>
+
+  <!-- ───────── 右：目錄 ───────── -->
+  <aside class="side">
+    <div class="side-head">
+      <b>目錄</b> <span id="tocN">(9)</span>
+      <span class="spacer"></span>
+      <span class="side-ico">☰</span>
+    </div>
+    <div class="side-pane">
+      <div class="resume" id="resumeCard">
+        <div class="resume-thumb">
+          <span class="resume-flag">上次學到</span>
+          <b class="resume-time">08:51</b>
+        </div>
+        <div class="resume-txt">
+          <strong>1.4 潔牙的科學：為什麼你天天刷牙，還是有牙周病</strong>
+          <span>👁 4,958 · 2 天前 · ✎</span>
+        </div>
+      </div>
+      <ul class="toc" id="toc"></ul>
+    </div>
+  </aside>
+</main>
+
+<!-- 右緣 AI 助教頁籤 -->
+<button class="ai-tab" id="aiTab"><span>✦ AI 助教</span></button>
+
+<!-- ══════════════════════════════ AI 助教側欄（復刻 PPA 現行外殼）══════════════════════════════ -->
+<aside class="tutor" id="tutor" hidden>
+  <header class="tutor-head">
+    <div class="tutor-brand">
+      <span class="tutor-star">✦</span> AI 助教 <i class="beta">Beta</i>
+    </div>
+    <div class="tutor-tools">
+      <button title="新對話">
+        <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z"/><path d="M12 9v6M9 12h6"/></svg>
+      </button>
+      <button title="歷史紀錄">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg>
+      </button>
+      <button title="置頂清單">
+        <svg viewBox="0 0 24 24"><path d="M4 6h12M4 12h9M4 18h7"/><path d="M17 15l3-3 3 3"/></svg>
+      </button>
+      <button id="tutorX" title="關閉">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="tutor-body" id="tutorBody"></div>
+
+  <footer class="tutor-foot">
+    <div class="tutor-input">
+      <button class="tutor-scope">全部課程 <span>⌄</span></button>
+      <div class="tutor-row">
+        <input id="tutorInput" placeholder="想學什麼" autocomplete="off">
+        <button class="tutor-send" id="tutorSend" aria-label="送出">
+          <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </div>
+    </div>
+    <p class="tutor-note">Gemini 技術支援，AI 回覆可能包含錯誤或不完整，僅供參考</p>
+  </footer>
+</aside>
+
+<!-- ══════════════════════════════ 精華 Reels ══════════════════════════════ -->
+<div class="reels" id="reels" hidden>
+  <header class="reels-head">
+    <button class="reels-x" id="reelsX">✕</button>
+    <div class="reels-ttl">
+      <span class="ai-badge">✦ AI 剪輯</span>
+      <b>潔牙的科學 · 精華</b>
+      <em id="reelsIdx">1 / 7</em>
+    </div>
+    <span class="reels-hint">↑↓ / 滾輪切換</span>
+  </header>
+  <div class="reels-feed" id="reelsFeed"></div>
+</div>
+
+<!-- ══════════════════════════════ 推播 ══════════════════════════════ -->
+<div class="push" id="push" hidden>
+  <div class="push-card">
+    <div class="push-app">
+      <span class="push-icon">▶</span>
+      <b>PressPlay Academy</b>
+      <em id="pushWhen">現在</em>
+    </div>
+    <strong class="push-title" id="pushTitle"></strong>
+    <p class="push-body" id="pushBody"></p>
+    <div class="push-why" id="pushWhy"></div>
+    <div class="push-acts">
+      <button class="btn btn-ghost" id="pushLater">稍後</button>
+      <button class="btn btn-ai" id="pushOpen">看 30 秒精華 →</button>
+    </div>
+  </div>
+</div>
+
+<div class="sched" id="sched" hidden>
+  <div class="sched-box">
+    <header>
+      <span class="ai-badge">✦ AI 助教</span>
+      <h3>我幫你排好了 3 次回訪</h3>
+      <button class="sched-x" id="schedX">✕</button>
+    </header>
+    <p class="sched-lead">排程不是「隔幾天推一次」。它是從<b>你倒帶的地方</b>和<b>內容本身的語意</b>長出來的。</p>
+    <ul class="sched-list" id="schedList"></ul>
+    <footer>
+      <button class="btn btn-ai" id="schedDemo">▶ 模擬今晚 21:30 的推播</button>
+    </footer>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

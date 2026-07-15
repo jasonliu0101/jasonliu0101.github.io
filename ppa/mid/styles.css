@@ -1,0 +1,1353 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PPA 播放介面原型 — AI 助教 / 暫停熱力圖 / 精華 Reels
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root{
+  --bg:#0a0a0c;
+  --surface:#141418;
+  --surface-2:#1b1b21;
+  --line:#26262e;
+  --line-2:#33333d;
+  --txt:#ececed;
+  --txt-2:#9a9aa4;
+  --txt-3:#67676f;
+
+  --orange:#ff9f2e;
+  --orange-d:#c9761a;
+  --ai:#8b5cf6;
+  --ai-2:#5b8dff;
+  --hot:#ff4d4d;
+  --ok:#31c48d;
+
+  --r:12px;
+  --shadow:0 12px 40px rgba(0,0,0,.55);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.7;
+     stroke-linecap:round;stroke-linejoin:round}
+
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font:400 15px/1.6 -apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+b,strong{font-weight:700}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.spacer{flex:1}
+[hidden]{display:none !important}
+
+/* ─────────────────────────── 頂部導覽 ─────────────────────────── */
+.nav{
+  position:sticky;top:0;z-index:60;
+  display:flex;align-items:center;gap:26px;
+  height:64px;padding:0 22px;
+  background:rgba(10,10,12,.92);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--txt);flex:none}
+.brand-mark{
+  display:grid;place-items:center;width:30px;height:30px;border-radius:9px;
+  background:linear-gradient(140deg,var(--orange),#ff6b2e);
+  color:#1a0f00;font-size:12px;padding-left:2px;
+}
+.brand-text{display:flex;flex-direction:column;line-height:1.05}
+.brand-text b{font-size:11px;letter-spacing:.02em}
+.brand-text em{font-style:normal;font-size:13px;font-weight:800;letter-spacing:.13em;color:var(--txt-2)}
+
+.nav-links{display:flex;align-items:center;gap:22px;flex:none}
+.nav-links a{color:var(--txt);text-decoration:none;font-size:14.5px;font-weight:500;position:relative;white-space:nowrap}
+.nav-links a:hover{color:var(--orange)}
+.caret{font-size:10px;color:var(--txt-3)}
+.has-dot::after{
+  content:"";position:absolute;top:-2px;right:-7px;
+  width:6px;height:6px;border-radius:50%;background:#ff3b3b;
+}
+/* 學習城市：動線入口，給一點主色讓它從導覽列跳出來 */
+.nav-links a.nav-city{
+  padding:6px 12px;border-radius:999px;
+  background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(91,141,255,.14));
+  border:1px solid rgba(139,92,246,.4);
+  color:#c4b5fd;font-weight:700;
+}
+.nav-links a.nav-city:hover{
+  background:linear-gradient(135deg,rgba(139,92,246,.32),rgba(91,141,255,.24));
+  color:#fff;
+}
+:root[data-theme="light"] .nav-links a.nav-city{ color:#6d40e0; }
+:root[data-theme="light"] .nav-links a.nav-city:hover{ color:#4a1fb0; }
+
+.search{
+  flex:1;max-width:330px;display:flex;align-items:center;gap:9px;
+  height:40px;padding:0 15px;
+  background:var(--surface-2);
+  border:1px solid var(--line);border-radius:999px;
+}
+.search svg{width:16px;height:16px;color:var(--txt-3);flex:none}
+.search input{flex:1;background:none;border:0;outline:0;color:var(--txt);font-size:14px}
+.search input::placeholder{color:var(--txt-3)}
+
+.nav-right{display:flex;align-items:center;gap:16px;margin-left:auto;flex:none}
+.nav-plain{color:var(--txt);text-decoration:none;font-size:14.5px;font-weight:500;white-space:nowrap}
+.nav-plain:hover{color:var(--orange)}
+.icon-btn{position:relative;width:22px;height:22px;color:var(--txt-2)}
+.icon-btn:hover{color:var(--orange)}
+.icon-btn .badge{
+  position:absolute;top:-6px;right:-7px;
+  min-width:16px;height:16px;padding:0 4px;border-radius:8px;
+  background:#ff3b3b;color:#fff;font-size:10px;font-weight:700;font-style:normal;
+  display:grid;place-items:center;
+}
+.icon-btn .dot{
+  position:absolute;top:-1px;right:-1px;width:8px;height:8px;border-radius:50%;
+  background:#ff3b3b;border:2px solid var(--bg);
+  animation:ping 1.4s infinite;
+}
+@keyframes ping{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.avatar{
+  width:32px;height:32px;border-radius:50%;flex:none;
+  background:linear-gradient(140deg,#5b8dff,#8b5cf6);
+  display:grid;place-items:center;font-size:13px;font-weight:700;
+}
+
+/* ─────────────────────────── 版面 ─────────────────────────── */
+.page{
+  display:grid;grid-template-columns:minmax(0,1fr) 372px;
+  gap:26px;max-width:1600px;margin:0 auto;padding:26px 22px 90px;
+  align-items:start;
+}
+.main-col{min-width:0}
+
+/* ─────────────────────────── 播放器 ─────────────────────────── */
+.player{
+  position:relative;aspect-ratio:16/9;
+  background:#000;border-radius:var(--r);overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.player video{width:100%;height:100%;display:block;object-fit:contain;background:#000}
+
+.player-tools{
+  position:absolute;top:14px;right:16px;display:flex;gap:8px;z-index:4;
+  opacity:0;transition:opacity .25s;
+}
+.player.hot .player-tools{opacity:1}
+.ptool{
+  padding:5px 9px;border-radius:7px;font-size:11px;font-weight:700;
+  background:rgba(0,0,0,.5);color:#fff;backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.14);
+}
+.ptool:hover{background:rgba(0,0,0,.8)}
+
+/* 影片緩衝轉圈 —— 主播放器與 Reels 共用 */
+.vspin{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:5}
+.vspin::after{content:"";width:46px;height:46px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.28);border-top-color:#fff;animation:vspin .8s linear infinite}
+.vspin[hidden]{display:none}
+@keyframes vspin{to{transform:rotate(1turn)}}
+
+.big-play{
+  position:absolute;inset:0;margin:auto;z-index:3;
+  width:76px;height:76px;border-radius:50%;
+  background:rgba(20,20,24,.72);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.18);
+  display:grid;place-items:center;
+  transition:transform .2s var(--ease),opacity .2s;
+}
+.big-play svg{width:34px;height:34px;fill:#fff;stroke:none;margin-left:3px}
+.big-play:hover{transform:scale(1.08)}
+.player.playing .big-play{opacity:0;pointer-events:none;transform:scale(.85)}
+
+/* 字幕必須壓在控制列「之上」（z-index 6 > 5），
+   而且控制列一出現就要往上讓位 —— 不然會被漸層吃掉。 */
+.subtitle{
+  position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:6;
+  max-width:78%;padding:5px 14px;
+  background:rgba(0,0,0,.76);border-radius:4px;
+  color:#fff;font-size:clamp(16px,1.65vw,25px);font-weight:500;line-height:1.4;
+  text-align:center;white-space:pre-wrap;
+  transition:bottom .25s var(--ease);
+  pointer-events:none;
+}
+.player.hot .subtitle,
+.player:not(.playing) .subtitle{bottom:152px}
+.subtitle:empty{display:none}
+/* 助教卡佔了右邊，字幕就往左讓 —— 不要從卡片底下露出半截 */
+.player.coached .subtitle{left:29%;max-width:52%}
+.player.coached.mini-coach .subtitle{left:38%;max-width:66%}
+
+/* ── 專有名詞（字幕裡、助教卡裡都有）──
+   虛線底 = 這個詞點得開。點了就地展開名詞卡，不把你踢出影片。 */
+.gl{
+  font-style:normal;
+  pointer-events:auto;cursor:pointer;
+  border-bottom:1.5px dashed rgba(196,181,253,.7);
+  color:#ddd2ff;
+  padding-bottom:1px;
+  transition:color .15s,background .15s;
+}
+.gl:hover{color:#fff;background:rgba(139,92,246,.35);border-radius:3px}
+.gl.on{color:#fff;background:var(--ai);border-radius:3px;border-bottom-color:transparent}
+/* 助教卡裡的名詞要跟字幕一樣顯眼。
+   （原本調淡過，怕滿版都是紫的 —— 結果調過頭，變成沒人知道它點得開。
+     一個看不出來能點的可點元素，等於不存在。） */
+.coach .gl{
+  border-bottom-color:rgba(196,181,253,.8);
+  color:#e2d9ff;
+  background:rgba(139,92,246,.13);
+  border-radius:3px 3px 0 0;
+  padding:0 2px 1px;
+}
+.coach .gl:hover{background:rgba(139,92,246,.4);color:#fff}
+.coach .gl.on{background:var(--ai);color:#fff}
+
+/* ── 名詞小窗 ── */
+.gpop{
+  position:absolute;z-index:14;
+  transform:translateX(-50%);
+  width:min(330px,72%);
+  padding:13px 14px;border-radius:12px;
+  background:rgba(19,19,26,.96);backdrop-filter:blur(18px);
+  border:1px solid rgba(139,92,246,.5);
+  box-shadow:0 14px 44px rgba(0,0,0,.66);
+  animation:gpop-in .22s var(--ease);
+}
+@keyframes gpop-in{
+  from{opacity:0;transform:translateX(-50%) translateY(6px) scale(.96)}
+  to{opacity:1;transform:translateX(-50%)}
+}
+/* 小箭頭指向被點的那個詞 */
+.gpop::after{
+  content:"";position:absolute;left:50%;bottom:-6px;
+  width:11px;height:11px;transform:translateX(-50%) rotate(45deg);
+  background:rgba(19,19,26,.96);
+  border-right:1px solid rgba(139,92,246,.5);
+  border-bottom:1px solid rgba(139,92,246,.5);
+}
+/* 上面塞不下時翻到詞的下方 —— 箭頭跟著翻上去 */
+.gpop.below{animation:gpop-in-below .22s var(--ease)}
+.gpop.below::after{
+  bottom:auto;top:-6px;
+  border-right:0;border-bottom:0;
+  border-left:1px solid rgba(139,92,246,.5);
+  border-top:1px solid rgba(139,92,246,.5);
+}
+@keyframes gpop-in-below{
+  from{opacity:0;transform:translateX(-50%) translateY(-6px) scale(.96)}
+  to{opacity:1;transform:translateX(-50%)}
+}
+.gpop-head{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.gpop-head b{font-size:15.5px;font-weight:800;color:#fff}
+.gpop-head b::before{content:"✦ ";color:#a78bfa;font-size:12px}
+.gpop-first{
+  font-size:10.5px;font-weight:700;color:var(--orange);
+  padding:2px 7px;border-radius:5px;background:rgba(255,159,46,.14);
+  font-variant-numeric:tabular-nums;
+}
+.gpop-x{margin-left:auto;color:var(--txt-3);font-size:12px}
+.gpop-x:hover{color:var(--txt)}
+.gpop-def{font-size:13px;line-height:1.68;color:#d8d8e0}
+.gpop-jump{
+  display:block;width:100%;margin-top:10px;
+  padding:8px 12px;border-radius:8px;
+  background:rgba(139,92,246,.16);border:1px solid rgba(139,92,246,.38);
+  color:#c4b5fd;font-size:12.5px;font-weight:600;
+  transition:background .16s;
+}
+.gpop-jump:hover{background:rgba(139,92,246,.3);color:#fff}
+
+/* ── 控制列 ── */
+.controls{
+  position:absolute;left:0;right:0;bottom:0;z-index:5;
+  padding:30px 16px 10px;
+  background:linear-gradient(transparent,rgba(0,0,0,.55) 32%,rgba(0,0,0,.92));
+  opacity:0;transform:translateY(6px);
+  transition:opacity .25s,transform .25s var(--ease);
+}
+.player.hot .controls,.player:not(.playing) .controls{opacity:1;transform:none}
+
+/* 熱力圖 + 進度條
+   垂直堆疊（由下往上）： track 4px │ heat 32px │ marks 22px         */
+.track-wrap{position:relative;padding-top:58px;margin-bottom:2px}
+
+.heat{
+  position:absolute;left:0;right:0;bottom:6px;height:32px;
+  display:flex;align-items:flex-end;gap:1px;
+  pointer-events:none;
+}
+.heat i{
+  flex:1;min-width:0;border-radius:1.5px 1.5px 0 0;
+  background:var(--hb,#3a4356);
+  height:var(--hh,2px);
+  transition:height .45s var(--ease),background .3s;
+}
+.heat i.skip{
+  background:repeating-linear-gradient(45deg,#3a3a46,#3a3a46 2px,transparent 2px,transparent 4px);
+}
+.heat i.bump{animation:bump .7s var(--ease)}
+@keyframes bump{
+  0%{filter:brightness(1)}
+  25%{filter:brightness(2.6) saturate(1.4)}
+  100%{filter:brightness(1)}
+}
+
+/* 介入點標記 —— 浮在熱力圖正上方，不要壓到柱子（柱子才是資料） */
+.marks{position:absolute;left:0;right:0;bottom:38px;height:22px;pointer-events:none}
+.mark{
+  position:absolute;bottom:0;transform:translateX(-50%);
+  width:20px;height:20px;border-radius:50%;
+  display:grid;place-items:center;font-size:10px;
+  background:linear-gradient(140deg,var(--ai),var(--ai-2));
+  border:1.5px solid #fff;
+  box-shadow:0 0 0 0 rgba(139,92,246,.6);
+  animation:pulse 2.4s infinite;
+  pointer-events:auto;cursor:pointer;
+}
+.mark:hover{transform:translateX(-50%) scale(1.25)}
+.mark.done{animation:none;opacity:.45;background:#4b4b58}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(139,92,246,.55)}
+  70%{box-shadow:0 0 0 11px rgba(139,92,246,0)}
+  100%{box-shadow:0 0 0 0 rgba(139,92,246,0)}
+}
+
+.track{
+  position:relative;height:4px;border-radius:2px;
+  background:rgba(255,255,255,.22);cursor:pointer;
+}
+.track::before{content:"";position:absolute;inset:-9px 0;}
+.track-buffer{position:absolute;inset:0;width:100%;background:rgba(255,255,255,.1);border-radius:2px}
+.track-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--orange);border-radius:2px}
+.track-knob{
+  position:absolute;top:50%;left:0;transform:translate(-50%,-50%) scale(0);
+  width:13px;height:13px;border-radius:50%;background:var(--orange);
+  transition:transform .16s var(--ease);
+}
+.player.hot .track-knob{transform:translate(-50%,-50%) scale(1)}
+
+.scrub-tip{
+  position:absolute;bottom:26px;transform:translateX(-50%);
+  padding:7px 10px;border-radius:8px;white-space:nowrap;
+  background:#1c1c22;border:1px solid var(--line-2);
+  font-size:12px;box-shadow:var(--shadow);pointer-events:none;z-index:8;
+}
+.scrub-tip b{color:var(--orange)}
+.scrub-tip .st-hot{display:block;margin-top:3px;color:var(--ai-2);font-weight:700}
+
+.ctl-row{display:flex;align-items:center;gap:14px;height:38px}
+.cbtn{width:21px;height:21px;color:#fff;opacity:.92;flex:none}
+.cbtn:hover{opacity:1;color:var(--orange)}
+
+/* 播放 / 暫停：兩個圖示疊在一起用 opacity 交叉淡出。
+   不用 hidden 互切 —— 那個做法只要有一次事件沒收到，圖示就永遠卡在錯的那一個，
+   而且兩個 svg 輪流進出 layout 還會讓按鈕微微抖動。 */
+#playBtn{position:relative;width:24px;height:24px}
+#playBtn svg{
+  position:absolute;inset:0;width:100%;height:100%;
+  fill:#fff;stroke:none;
+  transition:opacity .12s var(--ease);
+}
+#playBtn .i-pause{opacity:0}
+#playBtn.is-playing .i-play{opacity:0}
+#playBtn.is-playing .i-pause{opacity:1}
+#playBtn:hover svg{fill:var(--orange)}
+
+/* ↺ 10 —— 這顆按鈕就是訊號來源。按一下 = 一次「我沒聽懂」。 */
+.cbtn-replay{position:relative;width:23px;height:23px}
+.cbtn-replay b{
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-size:8px;font-weight:800;padding-top:2px;
+  pointer-events:none;
+}
+.cbtn-replay:hover{color:var(--orange)}
+
+.cc-a{
+  display:grid;place-items:center;width:21px;height:16px;
+  border:1.6px solid currentColor;border-radius:3px;font-size:10px;font-weight:800;
+}
+#ccBtn.off{opacity:.4}
+.ctl-chapter{
+  font-size:13.5px;color:rgba(255,255,255,.9);
+  max-width:44%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ctl-time{font-size:12.5px;color:rgba(255,255,255,.72);font-variant-numeric:tabular-nums;flex:none}
+.ctl-time b{color:#fff;font-weight:600}
+
+/* ── AI 助教介入卡 ──
+   解說一出現就攤開。你已經倒帶兩次了，我不該再讓你多點一下「請解釋」。 */
+.coach{
+  position:absolute;right:14px;top:12px;z-index:12;width:388px;
+  padding:14px;border-radius:14px;
+  background:rgba(19,19,26,.95);backdrop-filter:blur(18px);
+  border:1px solid rgba(139,92,246,.42);
+  box-shadow:0 18px 50px rgba(0,0,0,.62),0 0 0 1px rgba(139,92,246,.1);
+  animation:slide-in .42s var(--ease);
+  max-height:calc(100% - 84px);overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:#3a3a46 transparent;
+}
+@keyframes slide-in{from{opacity:0;transform:translateX(26px) scale(.97)}to{opacity:1;transform:none}}
+/* 卡片上不掛「數字記不住」這種標籤 —— 那是內部分類，講給創作者聽的。
+   對學員說「你數字記不住」有點居高臨下，而且他也不需要知道分類。
+   （後台照樣看得到 kindLabel。） */
+.coach-x{
+  margin-left:auto;align-self:flex-start;
+  color:var(--txt-3);font-size:13px;line-height:1;padding:2px;
+}
+.coach-x:hover{color:var(--txt)}
+
+/* ── mini / full 兩態 ──
+   mini：只講「幾個人在這裡倒帶」+ 一顆「顯示更多」。10 秒沒理就自己走。
+   full：按了才長出來 —— 解說直接攤開 + 投票。 */
+.coach.mini{width:300px}
+.coach.mini .coach-full{display:none}
+.coach.full .coach-more{display:none}
+.coach.full{animation:coach-grow .34s var(--ease)}
+@keyframes coach-grow{
+  from{opacity:.6;transform:scale(.97);transform-origin:top right}
+  to{opacity:1;transform:none}
+}
+
+.coach-more{
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;gap:8px;width:100%;
+  margin-top:11px;padding:10px 13px;border-radius:9px;
+  background:linear-gradient(135deg,rgba(139,92,246,.9),rgba(91,141,255,.9));
+  color:#fff;font-size:13.5px;font-weight:700;
+  transition:filter .16s;
+}
+.coach-more:hover{filter:brightness(1.14)}
+.coach-more b{margin-left:auto;font-size:11px}
+.coach-more-hint{
+  font-style:normal;font-size:11px;font-weight:500;
+  color:rgba(255,255,255,.75);
+}
+/* 引信：走完就消失。讓人知道它會自己走，不用急著關掉 */
+.coach-fuse{
+  position:absolute;left:0;bottom:0;height:2px;
+  background:rgba(255,255,255,.85);width:100%;
+}
+@keyframes fuse{from{width:100%}to{width:0}}
+
+.coach-stat{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.coach.mini .coach-stat{margin-bottom:0}
+/* 環和數字用助教的紫，不用警示紅 —— 這不是在指控你，是在告訴你「很多人跟你一樣」。
+   紅色會讀成「你有問題」，紫色讀成「這裡有東西可以幫你」。 */
+.coach-ring{
+  width:48px;height:48px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:conic-gradient(var(--ai) var(--p,66%),rgba(255,255,255,.09) 0);
+  position:relative;
+}
+.coach-ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#14141a}
+.coach-ring b{position:relative;font-size:12.5px;font-weight:800;color:#c4b5fd}
+.coach-stat-txt{display:flex;flex-direction:column;line-height:1.35;min-width:0}
+.coach-stat-txt strong{font-size:15.5px}
+.coach-stat-txt span{font-size:12px;color:var(--txt-2)}
+.coach-stat-txt span b{color:var(--orange)}
+
+.coach-answer{display:flex;flex-direction:column;gap:6px;animation:fade-up .4s var(--ease)}
+@keyframes fade-up{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.coach-answer p{
+  font-size:13px;line-height:1.55;color:#e2e2e8;
+  padding-left:12px;position:relative;
+}
+.coach-answer p::before{
+  content:"";position:absolute;left:0;top:8px;
+  width:5px;height:5px;border-radius:50%;background:var(--ai-2);
+}
+.coach-answer strong{color:#fff;background:rgba(139,92,246,.22);padding:1px 4px;border-radius:4px}
+.coach-sticky{
+  margin-top:10px;padding:9px 11px;border-radius:9px;
+  background:linear-gradient(135deg,rgba(139,92,246,.16),rgba(91,141,255,.1));
+  border:1px solid rgba(139,92,246,.32);
+  font-size:12.5px;font-weight:600;color:#e9e4ff;line-height:1.5;
+}
+.coach-sticky::before{content:"🧠 記這個就好　";font-size:10.5px;color:#a78bfa;font-weight:700}
+/* 黏在卡片底部 —— 內容再長，「剪成精華」也永遠點得到，不用捲到底才找得到 */
+.coach-acts{
+  position:sticky;bottom:-14px;z-index:2;
+  display:flex;gap:8px;
+  margin:11px -14px -14px;padding:11px 14px 14px;
+  background:linear-gradient(transparent,rgba(19,19,26,.97) 34%);
+  backdrop-filter:blur(6px);
+}
+.coach-acts .btn{flex:1;justify-content:center;padding:8px 12px;font-size:13px}
+
+/* ── 即時投票 ──
+   不是為了考你。是為了讓你看見「全班都錯在同一個地方」—— 那樣就不會覺得是自己笨。 */
+.poll{
+  margin-top:12px;padding:11px;border-radius:11px;
+  background:rgba(255,255,255,.045);border:1px solid var(--line-2);
+  animation:fade-up .4s var(--ease);
+}
+.poll-lead{font-size:11px;font-weight:700;color:var(--orange);margin-bottom:7px}
+.poll-q{font-size:13.5px;font-weight:700;line-height:1.45;margin-bottom:9px}
+.poll-opts{display:flex;flex-direction:column;gap:5px}
+.popt{
+  display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  padding:8px 10px;border-radius:8px;
+  background:var(--surface);border:1px solid var(--line-2);
+  font-size:12.5px;line-height:1.4;
+  transition:border-color .15s,background .15s,transform .12s var(--ease);
+}
+.popt:hover{border-color:var(--ai);background:rgba(139,92,246,.09);transform:translateX(2px)}
+.popt .k{
+  flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:5px;
+  background:var(--surface-2);border:1px solid var(--line-2);
+  font-size:11px;font-weight:700;color:var(--txt-2);
+}
+
+/* 投票結果：全班分布 */
+.poll-res{margin-top:14px;animation:fade-up .45s var(--ease)}
+.pr-bars{display:flex;flex-direction:column;gap:7px}
+.pr-row{
+  position:relative;display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:8px;
+  background:var(--surface);border:1px solid var(--line);
+  font-size:12.5px;
+}
+.pr-bar{
+  position:absolute;inset:0;border-radius:8px;overflow:hidden;pointer-events:none;
+}
+.pr-bar i{
+  display:block;height:100%;width:var(--w,0%);
+  background:rgba(255,255,255,.06);
+  animation:grow-w .75s var(--ease);
+}
+@keyframes grow-w{from{width:0}}
+.pr-row.ok{border-color:rgba(49,196,141,.55)}
+.pr-row.ok .pr-bar i{background:rgba(49,196,141,.2)}
+.pr-row.mine{box-shadow:0 0 0 1px var(--ai) inset}
+.pr-row.mine:not(.ok) .pr-bar i{background:rgba(255,77,77,.18)}
+.pr-k{
+  position:relative;flex:none;display:grid;place-items:center;
+  width:19px;height:19px;border-radius:5px;
+  background:var(--surface-2);font-size:10.5px;font-weight:700;color:var(--txt-2);
+}
+.pr-row.ok .pr-k{background:var(--ok);color:#04150e}
+.pr-t{position:relative;flex:1;color:#d5d5dc;line-height:1.4}
+.pr-p{position:relative;flex:none;font-weight:800;font-variant-numeric:tabular-nums}
+.pr-tick{position:relative;color:var(--ok);font-weight:800}
+.pr-you{
+  position:relative;flex:none;padding:1px 6px;border-radius:999px;
+  background:var(--ai);color:#fff;font-size:10px;font-weight:700;
+}
+
+.pr-say{
+  margin-top:11px;padding:11px 12px;border-radius:9px;
+  font-size:13px;line-height:1.6;
+}
+.pr-say.good{background:rgba(49,196,141,.11);border-left:3px solid var(--ok);color:#d3ded8}
+.pr-say.good b{color:var(--ok)}
+.pr-say.warm{background:rgba(255,159,46,.1);border-left:3px solid var(--orange);color:#e5ddd2}
+.pr-say.warm b{color:var(--orange)}
+
+.pr-blind{
+  margin-top:9px;padding:11px 12px;border-radius:9px;
+  background:rgba(255,77,77,.09);border:1px solid rgba(255,77,77,.28);
+  font-size:12.5px;line-height:1.6;color:#e8d2d2;
+}
+.pr-blind b{
+  display:block;margin-bottom:3px;color:#ff8f8f;font-size:11px;
+}
+.pr-blind b::before{content:"⚠ "}
+
+/* ─────────────────────────── 按鈕 ─────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 15px;border-radius:9px;
+  font-size:13.5px;font-weight:600;white-space:nowrap;
+  transition:transform .14s var(--ease),filter .18s,background .18s;
+}
+.btn:active{transform:scale(.97)}
+.btn .ico{width:16px;height:16px;flex:none}
+.btn-ai{background:linear-gradient(135deg,var(--ai),var(--ai-2));color:#fff}
+.btn-ai:hover{filter:brightness(1.14)}
+.btn-reels{background:linear-gradient(135deg,#ff4d6d,#ff9f2e);color:#fff}
+.btn-reels:hover{filter:brightness(1.12)}
+.btn-ghost{background:rgba(255,255,255,.08);color:var(--txt);border:1px solid var(--line-2)}
+.btn-ghost:hover{background:rgba(255,255,255,.15)}
+.btn-lg{padding:11px 20px;font-size:14.5px;border-radius:11px}
+.btn .pill{
+  font-style:normal;font-size:11px;font-weight:800;
+  padding:1px 7px;border-radius:999px;background:rgba(0,0,0,.28);
+}
+
+/* ─────────────────────────── 熱力圖圖例 ─────────────────────────── */
+.legend{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;
+  padding:11px 14px;margin-top:10px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  font-size:12px;color:var(--txt-2);
+}
+.legend-title{font-weight:700;color:var(--txt);font-size:12.5px}
+.legend-sub b{color:var(--orange)}
+.legend-scale{display:flex;align-items:center;gap:3px;margin-left:auto}
+.legend-scale i{width:11px;height:11px;border-radius:2px}
+.legend-scale i:nth-child(1){background:#3a4356}
+.legend-scale i:nth-child(2){background:#5a6a86}
+.legend-scale i:nth-child(3){background:#c78a3a}
+.legend-scale i:nth-child(4){background:#ff8c3a}
+.legend-scale i:nth-child(5){background:#ff4d4d}
+.legend-key{display:flex;align-items:center;gap:6px}
+.legend-key b{width:11px;height:11px;border-radius:50%;display:block}
+.k-hot{background:linear-gradient(140deg,var(--ai),var(--ai-2))}
+.k-skip{background:repeating-linear-gradient(45deg,#3a3a46,#3a3a46 2px,transparent 2px,transparent 4px);
+        border:1px solid var(--line-2);border-radius:2px !important}
+
+/* ─────────────────────────── 影片資訊 ─────────────────────────── */
+.meta{padding:20px 2px 0}
+.meta h1{font-size:25px;font-weight:800;letter-spacing:-.01em;line-height:1.4}
+.meta h2{font-size:14px;font-weight:500;color:var(--txt-2);margin-top:7px}
+.meta-row{display:flex;gap:16px;margin-top:11px;font-size:12.5px;color:var(--txt-3)}
+.m-item{display:flex;align-items:center;gap:4px}
+
+.acts{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  margin-top:15px;padding:11px 0;border-top:1px solid var(--line);
+}
+.act{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:8px;
+  font-size:13.5px;color:var(--txt-2);
+}
+.act:hover{background:var(--surface-2);color:var(--txt)}
+.act b{color:var(--txt);font-weight:600}
+.act.clapped{color:var(--orange)}
+
+.ai-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:14px;border-radius:12px;
+  background:linear-gradient(120deg,rgba(139,92,246,.09),rgba(255,159,46,.06));
+  border:1px solid rgba(139,92,246,.22);
+}
+.ai-note{font-size:13px;color:var(--txt-2)}
+.ai-note b{color:var(--orange)}
+
+/* ─────────────────────────── AI 筆記 ─────────────────────────── */
+.notes{
+  margin-top:16px;border-radius:14px;overflow:hidden;
+  background:var(--surface);border:1px solid rgba(139,92,246,.28);
+  animation:fade-up .45s var(--ease);
+}
+.notes-head{
+  display:flex;align-items:center;gap:12px;
+  padding:15px 18px;border-bottom:1px solid var(--line);
+  background:linear-gradient(120deg,rgba(139,92,246,.12),transparent);
+}
+.notes-title{display:flex;align-items:center;gap:11px;min-width:0}
+.notes-title h3{font-size:16px;font-weight:700}
+.ai-badge{
+  flex:none;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
+  background:linear-gradient(135deg,var(--ai),var(--ai-2));color:#fff;
+}
+.notes-x{margin-left:auto;font-size:13px;color:var(--txt-2);padding:6px 12px;border-radius:8px}
+.notes-x:hover{background:var(--surface-2);color:var(--txt)}
+.notes-body{padding:18px}
+
+/* 生成動畫 */
+.gen{display:flex;flex-direction:column;gap:11px}
+.gen-line{
+  height:13px;border-radius:6px;
+  background:linear-gradient(90deg,var(--surface-2) 25%,#2a2a35 50%,var(--surface-2) 75%);
+  background-size:200% 100%;
+  animation:shim 1.15s infinite;
+}
+@keyframes shim{to{background-position:-200% 0}}
+.gen-step{
+  display:flex;align-items:center;gap:9px;
+  font-size:13.5px;color:var(--txt-2);
+}
+.gen-step .tick{color:var(--ok);font-weight:800}
+.gen-step.run{color:var(--txt)}
+
+.nsec{margin-bottom:24px}
+.nsec:last-child{margin-bottom:0}
+.nsec-h{
+  display:flex;align-items:center;gap:8px;margin-bottom:12px;
+  font-size:13px;font-weight:700;color:var(--txt-2);
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.nsec-h::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.n-summary{
+  padding:14px 16px;border-radius:11px;line-height:1.75;font-size:14.5px;
+  background:linear-gradient(120deg,rgba(139,92,246,.1),rgba(91,141,255,.05));
+  border-left:3px solid var(--ai);
+}
+
+.n-points{display:flex;flex-direction:column;gap:3px}
+.n-point{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:9px 11px;border-radius:9px;text-align:left;width:100%;
+  transition:background .16s;
+}
+.n-point:hover{background:var(--surface-2)}
+.n-point .ts{
+  flex:none;padding:2px 8px;border-radius:6px;
+  background:rgba(255,159,46,.13);color:var(--orange);
+  font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;
+}
+.n-point .tx{font-size:14px;line-height:1.62;color:#dcdce2}
+.n-point:hover .tx{color:#fff}
+.n-point.hit .ts{background:var(--orange);color:#1a0f00}
+
+.n-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px}
+.n-term{
+  padding:12px 14px;border-radius:10px;text-align:left;
+  background:var(--surface-2);border:1px solid var(--line);
+  transition:border-color .16s,transform .16s var(--ease);
+}
+.n-term:hover{border-color:var(--ai);transform:translateY(-2px)}
+.n-term b{display:block;font-size:14px;margin-bottom:5px}
+.n-term b::after{content:" ↗";font-size:10px;color:var(--txt-3)}
+.n-term span{font-size:12.5px;line-height:1.6;color:var(--txt-2)}
+
+.n-nums{display:flex;flex-wrap:wrap;gap:9px}
+.n-num{
+  padding:10px 14px;border-radius:10px;min-width:104px;text-align:left;
+  background:var(--surface-2);border:1px solid var(--line);
+}
+.n-num:hover{border-color:var(--orange)}
+.n-num b{display:block;font-size:20px;font-weight:800;color:var(--orange);letter-spacing:-.02em}
+.n-num span{font-size:11.5px;color:var(--txt-3);line-height:1.4}
+
+.n-stuck{display:flex;flex-direction:column;gap:9px}
+.n-stuck-row{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:10px;
+  background:rgba(255,77,77,.07);border:1px solid rgba(255,77,77,.2);
+}
+.n-stuck-row .ts{
+  flex:none;padding:3px 9px;border-radius:6px;font-size:12px;font-weight:700;
+  background:rgba(255,77,77,.2);color:#ff8f8f;font-variant-numeric:tabular-nums;
+}
+.n-stuck-row .tx{flex:1;font-size:13.5px;line-height:1.55}
+.n-stuck-row .tx em{font-style:normal;color:var(--txt-3);font-size:12px;display:block;margin-top:2px}
+
+/* 知識挑戰 */
+.quiz{
+  padding:16px;border-radius:12px;
+  background:var(--surface-2);border:1px solid var(--line);
+}
+.quiz-q{font-size:15px;font-weight:600;margin-bottom:13px;line-height:1.6}
+.quiz-q .ts{
+  display:inline-block;margin-right:8px;padding:2px 8px;border-radius:6px;
+  background:rgba(255,159,46,.13);color:var(--orange);font-size:12px;font-weight:700;
+}
+.quiz-opts{display:flex;flex-direction:column;gap:8px}
+.qopt{
+  display:flex;align-items:center;gap:11px;
+  padding:12px 14px;border-radius:9px;text-align:left;
+  background:var(--surface);border:1px solid var(--line);
+  font-size:14px;transition:border-color .16s,background .16s;
+}
+.qopt:hover:not(:disabled){border-color:var(--ai);background:rgba(139,92,246,.07)}
+.qopt .k{
+  flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:6px;
+  background:var(--surface-2);border:1px solid var(--line-2);
+  font-size:12px;font-weight:700;color:var(--txt-2);
+}
+.qopt.right{border-color:var(--ok);background:rgba(49,196,141,.11)}
+.qopt.right .k{background:var(--ok);color:#04150e;border-color:var(--ok)}
+.qopt.wrong{border-color:var(--hot);background:rgba(255,77,77,.09)}
+.qopt.wrong .k{background:var(--hot);color:#fff;border-color:var(--hot)}
+.qopt:disabled{cursor:default}
+/* 作答後，每個選項都亮出「多少人選了這個」—— 看到大家一起錯，就不會覺得是自己笨 */
+.qpct{
+  margin-left:auto;flex:none;padding-left:12px;
+  font-size:11.5px;font-weight:700;color:var(--txt-3);
+  font-variant-numeric:tabular-nums;
+  animation:fade-up .4s var(--ease);
+}
+.qopt.right .qpct{color:var(--ok)}
+.qopt.wrong .qpct{color:var(--hot)}
+.quiz-ex{
+  margin-top:12px;padding:12px 14px;border-radius:9px;
+  background:rgba(49,196,141,.09);border-left:3px solid var(--ok);
+  font-size:13.5px;line-height:1.65;color:#d3ded8;
+  animation:fade-up .35s var(--ease);
+}
+.quiz-ex b{color:var(--ok)}
+.quiz-done{
+  margin-top:14px;padding:13px 15px;border-radius:10px;
+  display:flex;align-items:center;gap:11px;
+  background:linear-gradient(120deg,rgba(255,159,46,.13),rgba(255,77,109,.08));
+  border:1px solid rgba(255,159,46,.3);
+  font-size:13.5px;animation:fade-up .4s var(--ease);
+}
+.quiz-done .flame{font-size:22px}
+.quiz-done b{color:var(--orange)}
+
+/* ─────────────────────────── 右側欄 ─────────────────────────── */
+.side{
+  position:sticky;top:90px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;max-height:calc(100vh - 116px);display:flex;flex-direction:column;
+}
+.side-head{
+  display:flex;align-items:center;gap:6px;flex:none;
+  padding:15px 16px;border-bottom:1px solid var(--line);
+  font-size:15px;
+}
+.side-head b{font-weight:700}
+.side-head span{color:var(--txt-3);font-size:13px}
+.side-ico{color:var(--txt-3);cursor:pointer}
+.side-ico:hover{color:var(--txt)}
+
+.side-pane{overflow-y:auto;padding:12px;flex:1}
+
+.resume{
+  display:flex;gap:11px;padding:10px;border-radius:10px;margin-bottom:12px;
+  background:linear-gradient(120deg,rgba(255,159,46,.14),rgba(255,159,46,.04));
+  border:1px solid rgba(255,159,46,.28);cursor:pointer;
+}
+.resume:hover{border-color:var(--orange)}
+.resume-thumb{
+  position:relative;width:104px;height:60px;border-radius:7px;flex:none;
+  background:url('assets/cover.jpg') center/cover no-repeat,#16202e;
+  display:grid;place-items:center;overflow:hidden;
+}
+.resume-flag{
+  position:absolute;top:0;left:0;
+  padding:2px 7px;border-radius:0 0 6px 0;
+  background:var(--orange);color:#1a0f00;font-size:10px;font-weight:800;
+}
+.resume-time{
+  position:absolute;bottom:4px;right:5px;
+  padding:1px 5px;border-radius:4px;
+  background:rgba(0,0,0,.8);font-size:10.5px;font-weight:700;
+}
+.resume-txt{display:flex;flex-direction:column;gap:5px;justify-content:center;min-width:0}
+.resume-txt strong{
+  font-size:13px;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.resume-txt span{font-size:11px;color:var(--txt-3)}
+
+.toc{list-style:none;display:flex;flex-direction:column;gap:2px}
+.toc li{position:relative}
+.toc button{
+  display:flex;align-items:flex-start;gap:11px;width:100%;text-align:left;
+  padding:11px 10px;border-radius:9px;transition:background .16s;
+}
+.toc button:hover{background:var(--surface-2)}
+.toc .ts{
+  flex:none;padding:3px 9px;border-radius:6px;
+  background:rgba(255,159,46,.13);color:var(--orange);
+  font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;
+}
+.toc .bul{
+  flex:none;width:8px;height:8px;border-radius:50%;margin-top:7px;
+  background:var(--line-2);transition:background .2s,box-shadow .2s;
+}
+.toc .tx{font-size:13.5px;line-height:1.5;color:#c9c9d1;padding-top:1px}
+.toc li.on button{background:rgba(255,159,46,.09)}
+.toc li.on .bul{background:var(--orange);box-shadow:0 0 0 3px rgba(255,159,46,.2)}
+.toc li.on .tx{color:#fff;font-weight:600}
+.toc li.on .ts{background:var(--orange);color:#1a0f00}
+.toc .hotn{
+  display:inline-flex;align-items:center;gap:3px;margin-left:6px;
+  padding:1px 6px;border-radius:999px;font-size:10.5px;font-weight:700;
+  background:rgba(139,92,246,.2);color:#c4b5fd;border:1px solid rgba(139,92,246,.35);
+  vertical-align:middle;
+}
+
+/* ─────────────────────────── AI 助教頁籤 ─────────────────────────── */
+.ai-tab{
+  position:fixed;right:0;top:46%;z-index:50;
+  padding:16px 9px;border-radius:11px 0 0 11px;
+  background:linear-gradient(160deg,var(--ai),var(--ai-2));
+  color:#fff;font-size:13px;font-weight:700;
+  box-shadow:-4px 4px 22px rgba(139,92,246,.4);
+  transition:padding-right .2s var(--ease);
+}
+.ai-tab:hover{padding-right:15px}
+.ai-tab span{writing-mode:vertical-rl;letter-spacing:.12em}
+
+/* ─────────────────────────── AI 助教側欄（復刻 PPA 現行外殼）───────────────────
+   只做外殼。回覆是從課程名詞卡做本地檢索拼出來的，沒有接 LLM。 */
+.tutor{
+  position:fixed;top:0;right:0;bottom:0;z-index:120;
+  width:min(430px,100vw);display:flex;flex-direction:column;
+  background:#0f0f13;border-left:1px solid var(--line);
+  box-shadow:-16px 0 60px rgba(0,0,0,.6);
+  animation:tutor-in .38s var(--ease);
+}
+@keyframes tutor-in{from{transform:translateX(100%)}to{transform:none}}
+
+.tutor-head{
+  display:flex;align-items:center;flex:none;
+  padding:16px 18px;border-bottom:1px solid var(--line);
+}
+.tutor-brand{display:flex;align-items:center;gap:7px;font-size:17px;font-weight:800;color:#a78bfa}
+.tutor-star{font-size:15px}
+.beta{
+  font-style:normal;font-size:10.5px;font-weight:700;
+  padding:2px 7px;border-radius:5px;
+  background:var(--ai);color:#fff;letter-spacing:.03em;
+}
+.tutor-tools{display:flex;align-items:center;gap:14px;margin-left:auto}
+.tutor-tools button{width:20px;height:20px;color:var(--txt-2)}
+.tutor-tools button:hover{color:var(--txt)}
+
+.tutor-body{
+  flex:1;overflow-y:auto;padding:20px 18px;
+  display:flex;flex-direction:column;gap:22px;
+  scrollbar-width:thin;scrollbar-color:#33333d transparent;
+}
+.t-user{
+  align-self:flex-end;max-width:82%;
+  padding:11px 15px;border-radius:14px;
+  background:linear-gradient(120deg,#c3b3ff,#b8c6ff);
+  color:#16162a;font-size:14.5px;line-height:1.5;font-weight:500;
+  animation:fade-up .3s var(--ease);
+}
+.t-ai{display:flex;flex-direction:column;gap:12px;animation:fade-up .4s var(--ease)}
+.t-sec{font-size:15px;font-weight:800}
+
+.t-course{
+  display:flex;gap:12px;align-items:center;text-align:left;width:100%;
+  padding:0;border-radius:10px;
+}
+.t-thumb{
+  position:relative;width:148px;height:84px;border-radius:9px;flex:none;
+  background:url('assets/cover.jpg') center/cover no-repeat,#1a1a22;
+}
+.t-thumb b{
+  position:absolute;right:5px;bottom:5px;
+  padding:1px 6px;border-radius:4px;
+  background:rgba(0,0,0,.82);font-size:11px;font-weight:700;
+}
+.t-course-tx{display:flex;flex-direction:column;gap:5px;min-width:0}
+.t-course-tx strong{font-size:15px;line-height:1.45}
+.t-course-tx span{font-size:13px;color:var(--txt-2)}
+.t-course:hover strong{color:var(--ai-2)}
+
+.t-md{font-size:15px;line-height:1.75;color:#dcdce4}
+.t-md strong{color:#fff}
+:root[data-theme="light"] .t-md strong{ color:#4a1fb0; }
+.t-list{list-style:none;display:flex;flex-direction:column;gap:9px;padding-left:2px}
+.t-list li{
+  font-size:14px;line-height:1.65;color:#c9c9d3;
+  padding-left:13px;position:relative;
+}
+.t-list li::before{
+  content:"";position:absolute;left:0;top:10px;
+  width:5px;height:5px;border-radius:50%;background:var(--ai);
+}
+.t-list b{
+  color:var(--orange);font-variant-numeric:tabular-nums;
+  margin-right:5px;font-size:12.5px;
+}
+
+.t-react{display:flex;gap:16px;padding-top:2px}
+.t-react button{font-size:15px;opacity:.5;transition:opacity .15s,transform .15s var(--ease)}
+.t-react button:hover{opacity:1;transform:scale(1.15)}
+
+.t-more{font-size:14.5px;color:var(--txt-2);margin-top:4px}
+.t-chips{display:flex;flex-wrap:wrap;gap:9px}
+.t-chip{
+  padding:9px 16px;border-radius:999px;
+  border:1px solid var(--ai);color:#c4b5fd;
+  font-size:14px;font-weight:600;
+  transition:background .16s;
+}
+.t-chip:hover{background:rgba(139,92,246,.16)}
+
+.tutor-foot{flex:none;padding:14px 18px 12px;border-top:1px solid var(--line)}
+.tutor-input{
+  padding:11px 12px;border-radius:14px;
+  background:#000;border:1px solid var(--line-2);
+}
+.tutor-scope{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 14px;border-radius:999px;margin-bottom:9px;
+  border:1px solid var(--line-2);color:var(--txt);
+  font-size:13px;font-weight:600;
+}
+.tutor-scope span{color:var(--txt-3);font-size:10px}
+.tutor-scope:hover{border-color:var(--ai)}
+.tutor-row{display:flex;align-items:center;gap:10px}
+.tutor-row input{
+  flex:1;background:none;border:0;outline:0;
+  color:var(--txt);font-size:15px;padding:4px 2px;
+}
+.tutor-row input::placeholder{color:var(--txt-3)}
+.tutor-send{
+  flex:none;width:36px;height:36px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--surface-2);color:var(--txt-2);
+  transition:background .16s,color .16s;
+}
+.tutor-send svg{width:17px;height:17px;stroke-width:2}
+.tutor-send:hover{background:var(--ai);color:#fff}
+.tutor-note{
+  margin-top:10px;text-align:center;
+  font-size:11.5px;color:var(--txt-3);
+}
+
+/* ─────────────────────────── Reels ─────────────────────────── */
+.reels{
+  position:fixed;inset:0;z-index:200;
+  background:#000;
+  animation:fade .3s;
+}
+@keyframes fade{from{opacity:0}}
+.reels-head{
+  position:absolute;top:0;left:0;right:0;z-index:10;
+  display:flex;align-items:center;gap:16px;
+  padding:18px 22px;
+  background:linear-gradient(rgba(0,0,0,.85),transparent);
+}
+.reels-x{font-size:19px;color:#fff;width:36px;height:36px;border-radius:50%;
+         background:rgba(255,255,255,.12);flex:none}
+.reels-x:hover{background:rgba(255,255,255,.24)}
+.reels-ttl{display:flex;align-items:center;gap:10px;font-size:14.5px}
+.reels-ttl em{font-style:normal;color:var(--txt-3);font-size:13px;font-variant-numeric:tabular-nums}
+.reels-hint{margin-left:auto;font-size:12px;color:var(--txt-3)}
+
+.reels-feed{
+  height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;
+  scrollbar-width:none;
+}
+.reels-feed::-webkit-scrollbar{display:none}
+
+.reel{
+  position:relative;height:100vh;scroll-snap-align:start;
+  display:grid;place-items:center;
+}
+
+/* 9:16 直式卡。影片本身是 16:9 —— 硬裁成直式會把圖卡切爛
+   （04:57 那張「貝氏刷牙法」圖卡在左、「45 度」在右，中間什麼都沒有）。
+   所以：影片完整置中不裁，背景用同一幀的模糊放大版填滿，字幕擺影片下方。 */
+.reel-card{
+  position:relative;height:min(90vh,900px);aspect-ratio:10/16;
+  border-radius:20px;overflow:hidden;background:#0b0b0e;
+  box-shadow:0 24px 80px rgba(0,0,0,.7);
+  display:flex;flex-direction:column;
+  padding-top:56px;
+}
+.reel-card::before{
+  content:"";position:absolute;inset:-10%;z-index:0;
+  background:var(--bgimg) center/cover no-repeat;
+  filter:blur(34px) brightness(.44) saturate(1.4);
+  transform:scale(1.15);
+}
+.reel-card::after{
+  content:"";position:absolute;inset:0;z-index:0;
+  background:linear-gradient(rgba(0,0,0,.45),transparent 30%,transparent 45%,rgba(0,0,0,.82));
+  pointer-events:none;
+}
+/* 16:9 的影片塞進直式卡，上下必然留白 —— 那就把留白用掉。
+   上面放「AI 為什麼剪這段」，下面放字幕與文案。
+   .reel-why 的 margin-top:auto + .reel-cap 的 margin-bottom:auto → 這一整組垂直置中。 */
+.reel-why{
+  position:relative;z-index:1;flex:none;margin-top:auto;
+  padding:0 22px 11px;text-align:center;
+  font-size:13px;font-weight:600;color:#cfcfd8;
+  text-shadow:0 2px 10px rgba(0,0,0,.8);
+}
+.reel-why b{color:var(--hot);font-size:15px}
+
+.reel-media{
+  position:relative;z-index:1;flex:none;
+  width:100%;aspect-ratio:16/9;background:#000;
+  box-shadow:0 10px 40px rgba(0,0,0,.55);
+}
+.reel-media video{
+  width:100%;height:100%;display:block;
+  object-fit:contain;background:#000;
+}
+
+/* clip 進度 */
+.reel-prog{
+  position:absolute;top:0;left:0;right:0;height:3px;z-index:6;
+  background:rgba(255,255,255,.16);
+}
+.reel-prog i{display:block;height:100%;width:0;background:var(--orange);transition:width .2s linear}
+
+.reel-tag{
+  position:absolute;top:15px;left:16px;z-index:6;
+  display:flex;gap:7px;flex-wrap:wrap;max-width:calc(100% - 32px);
+}
+.rtag{
+  padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  background:rgba(0,0,0,.62);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.16);
+}
+.rtag.hot{background:rgba(255,77,77,.88);border-color:transparent}
+.rtag.ai{background:linear-gradient(135deg,var(--ai),var(--ai-2));border-color:transparent}
+
+/* 大字幕 —— 放影片「下面」，不壓在畫面上。
+   因為畫面本身就是重點（圖卡、論文截圖），遮掉等於白剪。 */
+.reel-cap{
+  position:relative;z-index:1;flex:none;margin-bottom:auto;
+  display:grid;place-items:center;
+  min-height:104px;padding:20px 22px;text-align:center;
+  font-size:clamp(19px,2.1vh,26px);font-weight:800;line-height:1.5;
+  letter-spacing:-.01em;
+  text-shadow:0 2px 14px rgba(0,0,0,.85);
+}
+.reel-cap:empty::after{content:"…";color:var(--txt-3)}
+
+.reel-foot{
+  position:relative;z-index:2;flex:none;
+  padding:0 20px 20px;
+}
+.reel-hook{
+  display:inline-block;margin-bottom:8px;
+  padding:5px 12px;border-radius:999px;
+  background:var(--orange);color:#1a0f00;
+  font-size:12.5px;font-weight:800;
+}
+.reel-title{font-size:19px;font-weight:800;line-height:1.4;margin-bottom:7px}
+.reel-take{font-size:13.5px;line-height:1.6;color:#c5c5cd;margin-bottom:14px}
+.reel-cta{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;padding:13px 16px;border-radius:11px;
+  background:rgba(255,255,255,.11);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.18);
+  font-size:14px;font-weight:600;
+  transition:background .18s;
+}
+.reel-cta:hover{background:rgba(255,159,46,.9);color:#1a0f00;border-color:transparent}
+.reel-cta span{color:var(--orange)}
+.reel-cta:hover span{color:#1a0f00}
+
+/* 卡片是 overflow:hidden（模糊背景要被裁），所以互動列不能放到卡片外面 —— 會整條消失。
+   擺在 cap 下方的空白區右側，剛好不擋影片也不擋文案。 */
+.reel-rail{
+  position:absolute;right:14px;bottom:150px;z-index:7;
+  display:flex;flex-direction:column;gap:14px;
+}
+.rrail{display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff}
+.rrail .ic{
+  width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(0,0,0,.42);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.18);
+  font-size:18px;transition:transform .16s var(--ease),background .16s;
+}
+.rrail:hover .ic{transform:scale(1.12);background:rgba(255,255,255,.2)}
+.rrail.on .ic{background:rgba(255,77,109,.9);border-color:transparent}
+.rrail b{font-size:11px;font-weight:600;color:#b8b8c0}
+.rrail.on b{color:#ff8fa6}
+
+.reel-media{cursor:pointer}
+
+@media (max-width:1180px){
+  .reel-card{aspect-ratio:auto;width:min(94vw,460px)}
+}
+
+/* ─────────────────────────── 推播 ─────────────────────────── */
+.push{
+  position:fixed;inset:0;z-index:300;
+  display:grid;place-items:center;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  animation:fade .3s;
+}
+.push-card{
+  width:min(420px,92vw);padding:17px;border-radius:20px;
+  background:rgba(38,38,46,.9);backdrop-filter:blur(30px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 30px 90px rgba(0,0,0,.75);
+  animation:push-in .5s var(--ease);
+}
+@keyframes push-in{
+  from{opacity:0;transform:translateY(-38px) scale(.94)}
+  to{opacity:1;transform:none}
+}
+.push-app{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12.5px;color:#c9c9d2}
+.push-icon{
+  display:grid;place-items:center;width:20px;height:20px;border-radius:6px;
+  background:linear-gradient(140deg,var(--orange),#ff6b2e);
+  color:#1a0f00;font-size:9px;padding-left:1px;
+}
+.push-app em{margin-left:auto;font-style:normal;color:var(--txt-3)}
+.push-title{display:block;font-size:16px;line-height:1.45;margin-bottom:5px}
+.push-body{font-size:14px;line-height:1.6;color:#d0d0d8}
+.push-why{
+  margin-top:11px;padding:9px 11px;border-radius:9px;
+  background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.28);
+  font-size:12px;line-height:1.55;color:#c9bdf5;
+}
+.push-why::before{content:"✦ 為什麼推這個給你　";font-weight:700;color:#a78bfa}
+.push-acts{display:flex;gap:8px;margin-top:14px}
+.push-acts .btn{flex:1;justify-content:center}
+
+/* 推播節奏 */
+.sched{
+  position:fixed;inset:0;z-index:290;display:grid;place-items:center;
+  background:rgba(0,0,0,.72);backdrop-filter:blur(6px);animation:fade .3s;
+}
+.sched-box{
+  width:min(620px,93vw);max-height:88vh;overflow-y:auto;
+  padding:24px;border-radius:18px;
+  background:var(--surface);border:1px solid rgba(139,92,246,.3);
+  box-shadow:var(--shadow);animation:push-in .45s var(--ease);
+}
+.sched-box header{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.sched-box h3{font-size:18px;font-weight:800}
+.sched-x{margin-left:auto;color:var(--txt-3);font-size:15px}
+.sched-x:hover{color:var(--txt)}
+.sched-lead{font-size:13.5px;line-height:1.7;color:var(--txt-2);margin-bottom:18px}
+.sched-lead b{color:var(--orange)}
+.sched-list{list-style:none;display:flex;flex-direction:column;gap:11px}
+.sched-item{
+  display:flex;gap:14px;padding:14px;border-radius:12px;
+  background:var(--surface-2);border:1px solid var(--line);
+}
+.sched-when{
+  flex:none;width:96px;display:flex;flex-direction:column;gap:3px;
+}
+.sched-when b{font-size:13.5px;color:var(--orange)}
+.sched-when i{
+  font-style:normal;font-size:10.5px;font-weight:700;
+  padding:2px 7px;border-radius:999px;align-self:flex-start;
+}
+.sched-when i.rescue{background:rgba(255,77,77,.16);color:#ff8f8f}
+.sched-when i.spaced{background:rgba(139,92,246,.18);color:#c4b5fd}
+.sched-when i.completion{background:rgba(49,196,141,.15);color:#6ee7b7}
+.sched-main{min-width:0;flex:1}
+.sched-main strong{display:block;font-size:14.5px;margin-bottom:4px}
+.sched-main p{font-size:13px;line-height:1.6;color:var(--txt-2);margin-bottom:8px}
+.sched-tag{
+  font-size:11.5px;line-height:1.5;color:var(--txt-3);
+  padding-left:11px;border-left:2px solid var(--line-2);
+}
+.sched-tag b{color:#a78bfa;font-weight:600}
+.sched-box footer{margin-top:18px;display:flex;justify-content:flex-end}
+
+/* ─────────────────────────── Toast ─────────────────────────── */
+.toasts{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%);
+  z-index:400;display:flex;flex-direction:column;gap:9px;align-items:center;
+  pointer-events:none;
+}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 18px;border-radius:999px;
+  background:rgba(28,28,36,.95);backdrop-filter:blur(16px);
+  border:1px solid var(--line-2);
+  box-shadow:var(--shadow);
+  font-size:13.5px;white-space:nowrap;
+  animation:toast-in .4s var(--ease);
+}
+.toast.out{animation:toast-out .3s var(--ease) forwards}
+@keyframes toast-in{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes toast-out{to{opacity:0;transform:translateY(-10px) scale(.96)}}
+.toast .em{font-size:17px}
+.toast b{color:var(--orange)}
+.toast.ai{border-color:rgba(139,92,246,.5)}
+.toast.ai b{color:#c4b5fd}
+
+/* ─────────────────────────── RWD ─────────────────────────── */
+@media (max-width:1240px){
+  .page{grid-template-columns:1fr}
+  .side{position:static;max-height:none}
+  .search{display:none}
+}
+@media (max-width:760px){
+  .nav-links,.nav-plain{display:none}
+  .meta h1{font-size:20px}
+  .coach{width:auto;left:12px;right:12px;top:12px}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   淺色主題
+   ─────────────────────────────────────────────────────────────────
+   關鍵取捨：PPA 淺色模式裡「影片本身還是深色的」—— 播放器與它的疊層
+   （控制列、字幕、AI 助教卡、名詞小窗、Reels、彈窗）維持深色不動，
+   只有「影片周圍的介面」轉淺：導覽列、資訊區、目錄側欄、筆記、AI 助教側欄。
+   所以下面只翻 token + 補那幾個把深色寫死的 chrome 選擇器。
+   ═══════════════════════════════════════════════════════════════════ */
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f3f4f7;
+  --surface:#ffffff;
+  --surface-2:#eef0f4;
+  --line:#e5e7ec;
+  --line-2:#d6d9e0;
+  --txt:#1a1b20;
+  --txt-2:#585a64;
+  --txt-3:#8a8c96;
+  --orange:#e07d0a;
+  --orange-d:#b8660a;
+  --ai:#7c4dff;
+  --ai-2:#3f6fff;
+  --hot:#e5484d;
+  --ok:#12a978;
+  --shadow:0 14px 40px rgba(60,70,95,.16);
+}
+
+/* 導覽列：底色寫死了深色，翻成半透明白 */
+:root[data-theme="light"] .nav{ background:rgba(255,255,255,.9); }
+
+/* 目錄側欄的文字色寫死了淺灰（給深底用的），淺色下會看不見 */
+:root[data-theme="light"] .toc .tx{ color:var(--txt-2); }
+:root[data-theme="light"] .toc li.on .tx{ color:var(--txt); }
+:root[data-theme="light"] .n-point:hover .tx{ color:var(--txt); }
+
+/* 筆記生成中的骨架動畫，中段色是深色 */
+:root[data-theme="light"] .gen-line{
+  background:linear-gradient(90deg,#eef0f4 25%,#e0e3ea 50%,#eef0f4 75%);
+  background-size:200% 100%;
+}
+
+/* AI 助教側欄：整面底色與輸入框都寫死深色 */
+:root[data-theme="light"] .tutor{ background:#ffffff; }
+:root[data-theme="light"] .tutor-input{ background:#f3f4f7; }
+:root[data-theme="light"] .t-md{ color:var(--txt); }
+:root[data-theme="light"] .t-list li{ color:var(--txt-2); }
+
+/* 淺底上陰影收斂一點，不然邊緣髒髒的 */
+:root[data-theme="light"] .side,
+:root[data-theme="light"] .notes{ box-shadow:0 1px 3px rgba(60,70,95,.06); }
+
+/* 完課後的動線 CTA：去 end 學習城市 */
+.city-cta{
+  display:flex;align-items:center;gap:13px;
+  margin-top:12px;padding:14px 16px;border-radius:12px;text-decoration:none;
+  background:linear-gradient(120deg,rgba(139,92,246,.16),rgba(91,141,255,.1));
+  border:1px solid rgba(139,92,246,.34);
+  transition:transform .14s var(--ease),filter .18s;
+}
+.city-cta:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.city-cta-ic{font-size:26px;flex:none}
+.city-cta-tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.city-cta-tx b{font-size:14px;color:var(--txt)}
+.city-cta-tx em{font-style:normal;font-size:12px;color:var(--txt-2)}
+.city-cta-go{
+  flex:none;padding:9px 15px;border-radius:9px;font-size:13px;font-weight:700;white-space:nowrap;
+  background:linear-gradient(135deg,var(--ai),var(--ai-2));color:#fff;
+}
+
+/* ── 影片上的深色疊層：淺色模式要維持「深底亮字」──
+   這些卡片（AI 助教 / 投票 / Reels / 名詞小窗 / toast / 彈窗）疊在深色影片上，
+   本來就該是深的。但它們的文字大多走 var(--txt) 之類的 token —— 淺色模式把 token 翻深了，
+   於是深字疊深底、糊成一片（就是那幾張截圖的問題）。
+   解法：在淺色模式，於這些容器「就地把整組 token 宣告回深色版」，
+   子元素的 var(--txt) 立刻變回亮字；另外補一個明確 color 給「繼承字色」的元素（如 reel 字幕）。 */
+:root[data-theme="light"] .coach,
+:root[data-theme="light"] .gpop,
+:root[data-theme="light"] .scrub-tip,
+:root[data-theme="light"] .reels,
+:root[data-theme="light"] .toast,
+:root[data-theme="light"] .push,
+:root[data-theme="light"] .sched{
+  color:#ececed;
+  --bg:#0a0a0c; --surface:#141418; --surface-2:#1b1b21;
+  --line:#26262e; --line-2:#33333d;
+  --txt:#ececed; --txt-2:#9a9aa4; --txt-3:#67676f;
+  --orange:#ff9f2e; --ai:#8b5cf6; --ai-2:#5b8dff; --hot:#ff4d4d; --ok:#31c48d;
+}
+/* reel 字幕/標題是「繼承字色」的，靠上面的 color 帶亮；標題再保險一次 */
+:root[data-theme="light"] .reel-title,
+:root[data-theme="light"] .reel-cap{ color:#fff; }
+
+/* ── 淺色面板裡寫死的「淺灰字」：在白底上等於隱形，翻深 ── */
+:root[data-theme="light"] .n-point .tx{ color:#33343c; }
+:root[data-theme="light"] .quiz-ex{ color:#3a4a44; }
+:root[data-theme="light"] .n-summary{ color:#2a2b33; }
