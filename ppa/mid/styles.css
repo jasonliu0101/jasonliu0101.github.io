@@ -50,6 +50,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   border-bottom:1px solid var(--line);
 }
 .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--txt);flex:none}
+.brand img{height:28px;width:auto;display:block}
 .brand-mark{
   display:grid;place-items:center;width:30px;height:30px;border-radius:9px;
   background:linear-gradient(140deg,var(--orange),#ff6b2e);
